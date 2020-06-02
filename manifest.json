@@ -15,6 +15,10 @@
     "activeTab"
   ],
 
+  "optional_permissions": [
+    "<all_urls>"
+  ],
+
   "browser_action": {
     "default_icon": "icons/icon.svg",
     "default_title": "Volume Control Everywhere",

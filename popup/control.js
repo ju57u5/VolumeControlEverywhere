@@ -1,30 +1,88 @@
-let executionResult = browser.tabs.executeScript(null, {
-	file: "/content_scripts/contentcontrol.js"
-});
-
-let portFromCS;
 let controlOutlet = document.querySelector('#control-outlet');
+let frameDataMap = new Map();
+let framePortMap = new Map();
+
+/**
+ * Run the content script in all available frames and show possible error messages in the popup.
+ */
+function runContentScript() {
+	let executionResult = browser.tabs.executeScript(null, {
+		file: "/content_scripts/contentcontrol.js",
+		allFrames: true
+	});
+	executionResult.catch(
+		(error) => {
+			console.error(error);
+			controlOutlet.innerHTML = `<h3>Error executing addon.</h3>${error}`;
+			if (error.message === "Missing host permission for the tab") {
+				controlOutlet.innerHTML += "<p>This is probably caused because you are on a internal site (e.g. about:blank) or on one of the <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts'>here mentioned domains</a> (e.g. addons.mozilla.com).</p>"
+			}
+		}
+	);
+}
 
 /**
  * Connects to the dataport.
- * @param {*} p 
+ * @param {*} port 
  */
-function connected(p) {
-	portFromCS = p;
-	portFromCS.onMessage.addListener(handleMessage);
-	portFromCS.postMessage({type: "status"});
+function connected(port) {
+	let frameId = port.sender.frameId;
+	framePortMap.set(frameId, port);
+	port.onMessage.addListener(handleMessage);
+
+	//Request the media data from the contentscript.
+	port.postMessage({ type: "status" });
 }
 
 /**
  * Handle a message from the dataport.
- * @param {*} m Message
+ * @param {*} m Message that was sent.
+ * @param {*} port Port this message was sent from.
  */
-function handleMessage(m) {
+function handleMessage(m, port) {
+	let frameId = port.sender.frameId;
+
+	audioHTML = m.audio.map(e => generateSlider(e, frameId)).join("");
+	videoHTML = m.video.map(e => generateSlider(e, frameId)).join("");
+
+	frameDataMap.set(frameId, { audioHTML: audioHTML, videoHTML: videoHTML });
+	renderHTML();
+}
+
+/**
+ * Render the HTML of the Addon-Popup if no media was found.
+ */
+function renderEmptyPage() {
+	let html = "<p>No Audio or Video Elements on this page. If the media is inside a Frame/Iframe this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls</>.</p>";
+	controlOutlet.innerHTML = html;
+
+	function onResponse(response) {
+		if (response) {
+			runContentScript();
+		}
+	}
+	document.querySelector("#permissionrequest").addEventListener("click", () => {
+		const permissionsToRequest = {
+			origins: ["<all_urls>"],
+		}
+		browser.permissions.request(permissionsToRequest).then(onResponse);
+	});
+}
+
+/**
+ * Render the HTML of the Addon-Popup based on the data inside sortedFrameData.
+ */
+function renderHTML() {
+	let audioHTML = "";
+	let videoHTML = "";
+	let sortedFrameEntries = [...frameDataMap.entries()].sort();
+
+	for (let [key, value] of sortedFrameEntries) {
+		audioHTML += value.audioHTML || "";
+		videoHTML += value.videoHTML || "";
+	}
+
 	let html = "";
-
-	audioHTML = m.audio.map(e => generateSlider(e)).join("");
-	videoHTML = m.video.map(e => generateSlider(e)).join("");
-
 	if (audioHTML) {
 		html += `<h3>Audio</h3>${audioHTML}`;
 	}
@@ -32,7 +90,8 @@ function handleMessage(m) {
 		html += `<h3>Video</h3>${videoHTML}`;
 	}
 	if (!html) {
-		html = "<p>No Audio or Video Elements on this page.</p>";
+		renderEmptyPage();
+		return;
 	}
 
 	controlOutlet.innerHTML = html;
@@ -48,7 +107,8 @@ function handleMessage(m) {
  * @this HTMLInputElement Slider in the event context.
  */
 function sendAdjustedVolume() {
-	portFromCS.postMessage({
+	let frameId = parseInt(this.dataset.frameId);
+	framePortMap.get(frameId).postMessage({
 		type: this.dataset.type,
 		id: this.dataset.volumecontrolid,
 		volume: this.value / 100,
@@ -58,23 +118,16 @@ function sendAdjustedVolume() {
 /**
  * Generate a slider representing the media status inside a message.
  * @param {*} m Message from the contententscript about the current media status.
+ * @param {number} frameId ID of the frame this slider was generated for. Will be used to send the volume commands to the appropriate frame.  
  */
-function generateSlider(m) {
+function generateSlider(m, frameId) {
 	return `<label for="${m.id}">
 	    		<a href="${m.src}">${decodeURIComponent(m.src)}</a>
 	    	</label>
-	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="audio" data-volumecontrolid="${m.id}">
+	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="${m.type}" data-volumecontrolid="${m.id}" data-frame-id="${frameId}">
     	`;
 }
 
-executionResult.catch(
-	(error) => {
-		console.error(error);
-		controlOutlet.innerHTML = `<h3>Error executing addon.</h3>${error}`;
-		if (error.message === "Missing host permission for the tab") {
-			controlOutlet.innerHTML += "<p>This is probably caused because you are on a internal site (e.g. about:blank) or on one of the <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts'>here mentioned domains</a> (e.g. addons.mozilla.com).</p>"
-		}
-	}
-);
+runContentScript();
 browser.runtime.onConnect.addListener(connected);
 

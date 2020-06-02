@@ -35,7 +35,8 @@
 		return {
 			src: element.currentSrc,
 			volume: element.volume,
-			id: element.dataset[dataSetKey]
+			id: element.dataset[dataSetKey],
+			type: element.nodeName.toLowerCase()
 		};
 	}
 
