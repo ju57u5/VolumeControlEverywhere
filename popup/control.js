@@ -53,7 +53,7 @@ function handleMessage(m, port) {
  * Render the HTML of the Addon-Popup if no media was found.
  */
 function renderEmptyPage() {
-	let html = "<p>No Audio or Video Elements on this page. If the media is inside a Frame/Iframe this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls</>.</p>";
+	let html = "<p>No Audio or Video Elements on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls</>.</p>";
 	controlOutlet.innerHTML = html;
 
 	function onResponse(response) {
