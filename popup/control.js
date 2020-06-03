@@ -32,7 +32,7 @@ async function connected(port) {
 	port.onMessage.addListener(handleMessage);
 
 	//Request the media data from the contentscript.
-	port.postMessage({ type: "status", checkIFrame: !await hasAllUrlPermission()});
+	port.postMessage({ type: "status", checkIFrame: !await hasAllUrlPermission() });
 }
 
 /**
@@ -41,6 +41,7 @@ async function connected(port) {
  * @param {*} port Port this message was sent from.
  */
 function handleMessage(m, port) {
+	console.debug("Message", m);
 	if (m.type === "iframe-status" && m.iframe) {
 		renderIFrameWarning();
 		return;
@@ -50,7 +51,14 @@ function handleMessage(m, port) {
 	audioHTML = m.audio.map(e => generateSlider(e, frameId, m.documentId)).join("");
 	videoHTML = m.video.map(e => generateSlider(e, frameId, m.documentId)).join("");
 
-	frameDataMap.set(frameId, { audioHTML: audioHTML, videoHTML: videoHTML });
+	let frameData = { audioHTML: audioHTML, videoHTML: videoHTML };
+	let frameDataArray = frameDataMap.get(frameId);
+	if (frameDataArray === undefined) {
+		frameDataArray = [],
+		frameDataMap.set(frameId, frameDataArray);
+	}
+	frameDataArray[m.documentId] = frameData;
+	
 	renderHTML();
 }
 
@@ -66,8 +74,8 @@ function renderEmptyPage() {
  * Returns if the addon has the <all_urls> permission.
  */
 async function hasAllUrlPermission() {
-    let response = await browser.permissions.getAll();
-    return response.origins.includes('<all_urls>');
+	let response = await browser.permissions.getAll();
+	return response.origins.includes('<all_urls>');
 }
 
 /**
@@ -102,10 +110,12 @@ function renderHTML() {
 	let sortedFrameEntries = [...frameDataMap.entries()].sort();
 
 	for (let [key, value] of sortedFrameEntries) {
-		audioHTML += value.audioHTML || "";
-		videoHTML += value.videoHTML || "";
+		for (e of value) {
+			audioHTML += e.audioHTML || "";
+			videoHTML += e.videoHTML || "";
+		}
 	}
-
+	
 	let html = "";
 	if (audioHTML) {
 		html += `<h3>Audio</h3>${audioHTML}`;

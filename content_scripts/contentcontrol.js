@@ -34,7 +34,7 @@
 	 * Checks if the I-Frame is protected by security reasons (e. g. cross origin content).
 	 * @param {HTMLIFrameElement} iframe The I-Frame to check.
 	 */
-	function canAccessIframe(iframe) {
+	function canAccessIFrame(iframe) {
 		try {
 			return Boolean(iframe.contentDocument);
 		}
@@ -62,7 +62,7 @@
 		}
 
 		for (let e of iframe) {
-			if (!canAccessIframe(e)) {
+			if (!canAccessIFrame(e)) {
 				VCE_PORT.postMessage({ type: "iframe-status", iframe: true });
 			} else {
 				let length = contentDocuments.push(e.contentDocument);
