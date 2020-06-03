@@ -157,11 +157,13 @@ function sendAdjustedVolume() {
  * @param {number} frameId ID of the frame this slider was generated for. Will be used to send the volume commands to the appropriate frame.  
  */
 function generateSlider(m, frameId, documentId) {
-	return `<label for="${m.id}">
+	return `
+		<div class="slider-container">
+		<label for="${m.id}">
 	    		<a href="${m.src}">${decodeURIComponent(m.src)}</a>
 	    	</label>
 	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="${m.type}" data-volumecontrolid="${m.id}" data-frame-id="${frameId}" data-document-id="${documentId}">
-    	`;
+    	</div>`;
 }
 
 runContentScript();
