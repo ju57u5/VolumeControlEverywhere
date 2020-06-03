@@ -15,8 +15,8 @@ function runContentScript() {
 		(error) => {
 			console.error(error);
 			controlOutlet.innerHTML = `<h3>Error executing addon.</h3>${error}`;
-			if (error.message === "Missing host permission for the tab") {
-				controlOutlet.innerHTML += "<p>This is probably caused because you are on a internal site (e.g. about:blank) or on one of the <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts'>here mentioned domains</a> (e.g. addons.mozilla.com).</p>"
+			if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
+				controlOutlet.innerHTML += "<p>This is probably because you are on an internal site (e.g. about:blank) or on one of the <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts'>here mentioned domains</a> (e.g. addons.mozilla.com).</p>"
 			}
 		}
 	);
