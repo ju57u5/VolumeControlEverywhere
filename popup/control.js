@@ -1,4 +1,5 @@
 let controlOutlet = document.querySelector('#control-outlet');
+let warningOutlet = document.querySelector('#warning-outlet');
 let frameDataMap = new Map();
 let framePortMap = new Map();
 
@@ -25,13 +26,13 @@ function runContentScript() {
  * Connects to the dataport.
  * @param {*} port 
  */
-function connected(port) {
+async function connected(port) {
 	let frameId = port.sender.frameId;
 	framePortMap.set(frameId, port);
 	port.onMessage.addListener(handleMessage);
 
 	//Request the media data from the contentscript.
-	port.postMessage({ type: "status" });
+	port.postMessage({ type: "status", checkIFrame: !await hasAllUrlPermission()});
 }
 
 /**
@@ -40,10 +41,14 @@ function connected(port) {
  * @param {*} port Port this message was sent from.
  */
 function handleMessage(m, port) {
+	if (m.type === "iframe-status" && m.iframe) {
+		renderIFrameWarning();
+		return;
+	}
 	let frameId = port.sender.frameId;
 
-	audioHTML = m.audio.map(e => generateSlider(e, frameId)).join("");
-	videoHTML = m.video.map(e => generateSlider(e, frameId)).join("");
+	audioHTML = m.audio.map(e => generateSlider(e, frameId, m.documentId)).join("");
+	videoHTML = m.video.map(e => generateSlider(e, frameId, m.documentId)).join("");
 
 	frameDataMap.set(frameId, { audioHTML: audioHTML, videoHTML: videoHTML });
 	renderHTML();
@@ -53,8 +58,27 @@ function handleMessage(m, port) {
  * Render the HTML of the Addon-Popup if no media was found.
  */
 function renderEmptyPage() {
-	let html = "<p>No Audio or Video Elements on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls</>.</p>";
+	let html = "<p>No Audio or Video Elements on this page.</p>";
 	controlOutlet.innerHTML = html;
+}
+
+/**
+ * Returns if the addon has the <all_urls> permission.
+ */
+async function hasAllUrlPermission() {
+    let response = await browser.permissions.getAll();
+    return response.origins.includes('<all_urls>');
+}
+
+/**
+ * Renders a permissions warning if an I-Frame is present.
+ */
+async function renderIFrameWarning() {
+	if (await hasAllUrlPermission()) {
+		return;
+	}
+	let html = `<p>There seems to be an I-Frame on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls<a/>.</p>`;
+	warningOutlet.innerHTML = html;
 
 	function onResponse(response) {
 		if (response) {
@@ -108,10 +132,12 @@ function renderHTML() {
  */
 function sendAdjustedVolume() {
 	let frameId = parseInt(this.dataset.frameId);
+	let documentId = parseInt(this.dataset.documentId);
 	framePortMap.get(frameId).postMessage({
 		type: this.dataset.type,
 		id: this.dataset.volumecontrolid,
 		volume: this.value / 100,
+		documentId: documentId,
 	});
 }
 
@@ -120,11 +146,11 @@ function sendAdjustedVolume() {
  * @param {*} m Message from the contententscript about the current media status.
  * @param {number} frameId ID of the frame this slider was generated for. Will be used to send the volume commands to the appropriate frame.  
  */
-function generateSlider(m, frameId) {
+function generateSlider(m, frameId, documentId) {
 	return `<label for="${m.id}">
 	    		<a href="${m.src}">${decodeURIComponent(m.src)}</a>
 	    	</label>
-	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="${m.type}" data-volumecontrolid="${m.id}" data-frame-id="${frameId}">
+	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="${m.type}" data-volumecontrolid="${m.id}" data-frame-id="${frameId}" data-document-id="${documentId}">
     	`;
 }
 
