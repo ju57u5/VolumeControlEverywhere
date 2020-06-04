@@ -1,5 +1,7 @@
-let controlOutlet = document.querySelector('#control-outlet');
-let warningOutlet = document.querySelector('#warning-outlet');
+let controlOutlet = document.getElementById('control-outlet');
+let warningOutlet = document.getElementById('warning-outlet');
+let sliderTemplate = document.getElementById('slider-template');
+
 let frameDataMap = new Map();
 let framePortMap = new Map();
 
@@ -14,12 +16,37 @@ function runContentScript() {
 	executionResult.catch(
 		(error) => {
 			console.error(error);
-			controlOutlet.innerHTML = `<h3>Error executing addon.</h3>${error}`;
-			if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
-				controlOutlet.innerHTML += "<p>This is probably because you are on an internal site (e.g. about:blank) or on one of the <a href='https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts'>here mentioned domains</a> (e.g. addons.mozilla.com).</p>"
-			}
+			controlOutlet.appendChild(renderError(error))
 		}
 	);
+}
+
+/**
+ * Render the error message as a document fragment.
+ * @param {Error} error 
+ */
+function renderError(error) {
+	let fragment = document.createDocumentFragment();
+	let h3 = document.createElement("h3");
+	h3.textContent = "Error executing addon. " + error.toString();
+
+	fragment.appendChild(h3);
+
+	if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
+		let anchor = document.createElement("a");
+		anchor.href = "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts";
+		anchor.textContent = "here mentioned domains";
+
+		let text1 = document.createTextNode("This is probably because you are on an internal site (e.g. about:blank) or on one of the ");
+		let text2 = document.createTextNode(" (e.g. addons.mozilla.com).");
+
+		let paragraph = document.createElement("p");
+		paragraph.appendChild(text1);
+		paragraph.appendChild(anchor);
+		paragraph.appendChild(text2);
+		fragment.appendChild(paragraph);
+	}
+	return fragment;
 }
 
 /**
@@ -48,17 +75,21 @@ function handleMessage(m, port) {
 	}
 	let frameId = port.sender.frameId;
 
-	audioHTML = m.audio.map(e => generateSlider(e, frameId, m.documentId)).join("");
-	videoHTML = m.video.map(e => generateSlider(e, frameId, m.documentId)).join("");
+	let audioHTML = document.createDocumentFragment();
+	let videoHTML = document.createDocumentFragment();
+	
+	let mapper = e => generateSlider(e, frameId, m.documentId);
+	m.audio.map(mapper).forEach(e => audioHTML.append(e));
+	m.video.map(mapper).forEach(e => videoHTML.append(e));
 
 	let frameData = { audioHTML: audioHTML, videoHTML: videoHTML };
 	let frameDataArray = frameDataMap.get(frameId);
 	if (frameDataArray === undefined) {
 		frameDataArray = [],
-		frameDataMap.set(frameId, frameDataArray);
+			frameDataMap.set(frameId, frameDataArray);
 	}
 	frameDataArray[m.documentId] = frameData;
-	
+
 	renderHTML();
 }
 
@@ -66,8 +97,9 @@ function handleMessage(m, port) {
  * Render the HTML of the Addon-Popup if no media was found.
  */
 function renderEmptyPage() {
-	let html = "<p>No Audio or Video Elements on this page.</p>";
-	controlOutlet.innerHTML = html;
+	let p = document.createElement("p");
+	p.textContent = "No Audio or Video Elements on this page.";
+	return document.createDocumentFragment().appendChild(p);
 }
 
 /**
@@ -83,21 +115,36 @@ async function hasAllUrlPermission() {
  */
 async function renderIFrameWarning() {
 	if (await hasAllUrlPermission()) {
+		//Don't render warning if we have permission to look into the iframe anyway.
 		return;
 	}
-	let html = `<p>There seems to be an I-Frame on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it <a href='#' id='permissionrequest'>permissions to all urls<a/>.</p>`;
-	warningOutlet.innerHTML = html;
-
-	function onResponse(response) {
-		if (response) {
-			runContentScript();
-		}
+	if (warningOutlet.children.length) {
+		//Don't render if we already rendered.
+		return;
 	}
-	document.querySelector("#permissionrequest").addEventListener("click", () => {
+	
+	let paragraph = document.createElement("p");
+	let text1 = document.createTextNode("There seems to be an I-Frame on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it ");
+	paragraph.appendChild(text1)
+
+	let anchor = document.createElement("a");
+	anchor.href = "#";
+	anchor.id = "permission-request";
+
+	let text2 = document.createTextNode(".");
+	paragraph.appendChild(text2)
+
+	warningOutlet.appendChild(paragraph);
+
+	anchor.addEventListener("click", () => {
 		const permissionsToRequest = {
 			origins: ["<all_urls>"],
 		}
-		browser.permissions.request(permissionsToRequest).then(onResponse);
+		browser.permissions.request(permissionsToRequest).then((permissionGranted) => {
+			if (permissionGranted) {
+				runContentScript();
+			}
+		});
 	});
 }
 
@@ -105,30 +152,37 @@ async function renderIFrameWarning() {
  * Render the HTML of the Addon-Popup based on the data inside sortedFrameData.
  */
 function renderHTML() {
-	let audioHTML = "";
-	let videoHTML = "";
+	let audioHTML = document.createDocumentFragment();
+	let videoHTML = document.createDocumentFragment();
 	let sortedFrameEntries = [...frameDataMap.entries()].sort();
 
 	for (let [key, value] of sortedFrameEntries) {
 		for (e of value) {
-			audioHTML += e.audioHTML || "";
-			videoHTML += e.videoHTML || "";
+			console.debug(e);
+			audioHTML.append(e.audioHTML);
+			videoHTML.append(e.videoHTML);
 		}
 	}
-	
-	let html = "";
-	if (audioHTML) {
-		html += `<h3>Audio</h3>${audioHTML}`;
+
+	let html = document.createDocumentFragment();
+	if (audioHTML.children.length) {
+		let h3 = document.createElement('h3');
+		h3.textContent = "Audio";
+		html.appendChild(h3);
+		html.appendChild(audioHTML);
 	}
-	if (videoHTML) {
-		html += `<h3>Video</h3>${videoHTML}`;
+	if (videoHTML.children.length) {
+		let h3 = document.createElement('h3');
+		h3.textContent = "Video";
+		html.appendChild(h3);
+		html.appendChild(videoHTML);
 	}
 	if (!html) {
-		renderEmptyPage();
-		return;
+		html = renderEmptyPage();
 	}
-
-	controlOutlet.innerHTML = html;
+	
+	controlOutlet.textContent = "";
+	controlOutlet.appendChild(html);
 
 	let sliders = document.querySelectorAll("input[type='range']");
 	sliders.forEach(slider => {
@@ -145,7 +199,7 @@ function sendAdjustedVolume() {
 	let documentId = parseInt(this.dataset.documentId);
 	framePortMap.get(frameId).postMessage({
 		type: this.dataset.type,
-		id: this.dataset.volumecontrolid,
+		id: this.dataset.volumecontrolId,
 		volume: this.value / 100,
 		documentId: documentId,
 	});
@@ -157,13 +211,24 @@ function sendAdjustedVolume() {
  * @param {number} frameId ID of the frame this slider was generated for. Will be used to send the volume commands to the appropriate frame.  
  */
 function generateSlider(m, frameId, documentId) {
-	return `
-		<div class="slider-container">
-		<label for="${m.id}">
-	    		<a href="${m.src}">${decodeURIComponent(m.src)}</a>
-	    	</label>
-	    	<input id="${m.id}" class="slider" type="range" min="0" max="100" value="${m.volume * 100}" data-type="${m.type}" data-volumecontrolid="${m.id}" data-frame-id="${frameId}" data-document-id="${documentId}">
-    	</div>`;
+	const content = sliderTemplate.content;
+
+	const label = content.querySelector("label");
+	label.for = m.id;
+
+	const anchor = content.querySelector("a");
+	anchor.href = m.src;
+	anchor.textContent = decodeURIComponent(m.src);
+
+	const input = content.querySelector("input");
+	input.id = m.id;
+	input.value = m.volume * 100;
+	input.dataset.type = m.type;
+	input.dataset.volumecontrolId = m.id
+	input.dataset.frameId = frameId;
+	input.dataset.documentId = documentId
+
+	return document.importNode(content, true);
 }
 
 runContentScript();
