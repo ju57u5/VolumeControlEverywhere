@@ -1,6 +1,8 @@
 let controlOutlet = document.getElementById('control-outlet');
 let warningOutlet = document.getElementById('warning-outlet');
 let sliderTemplate = document.getElementById('slider-template');
+let iframeWarningTemplate = document.getElementById('iframe-warning-template');
+let permissionWarningTemplate = document.getElementById('permission-warning-template');
 
 let frameDataMap = new Map();
 let framePortMap = new Map();
@@ -16,6 +18,7 @@ function runContentScript() {
 	executionResult.catch(
 		(error) => {
 			console.error(error);
+			controlOutlet.textContent="";
 			controlOutlet.appendChild(renderError(error))
 		}
 	);
@@ -27,24 +30,10 @@ function runContentScript() {
  */
 function renderError(error) {
 	let fragment = document.createDocumentFragment();
-	let h3 = document.createElement("h3");
-	h3.textContent = "Error executing addon. " + error.toString();
-
-	fragment.appendChild(h3);
-
+	fragment.appendChild(h3("Error executing addon"));
+	fragment.appendChild(paragraph(error.toString()));
 	if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
-		let anchor = document.createElement("a");
-		anchor.href = "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts";
-		anchor.textContent = "here mentioned domains";
-
-		let text1 = document.createTextNode("This is probably because you are on an internal site (e.g. about:blank) or on one of the ");
-		let text2 = document.createTextNode(" (e.g. addons.mozilla.com).");
-
-		let paragraph = document.createElement("p");
-		paragraph.appendChild(text1);
-		paragraph.appendChild(anchor);
-		paragraph.appendChild(text2);
-		fragment.appendChild(paragraph);
+		fragment.appendChild(permissionWarningTemplate.content);
 	}
 	return fragment;
 }
@@ -123,20 +112,9 @@ async function renderIFrameWarning() {
 		return;
 	}
 	
-	let paragraph = document.createElement("p");
-	let text1 = document.createTextNode("There seems to be an I-Frame on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it ");
-	paragraph.appendChild(text1)
+	warningOutlet.appendChild(iframeWarningTemplate.content);
 
-	let anchor = document.createElement("a");
-	anchor.href = "#";
-	anchor.id = "permission-request";
-
-	let text2 = document.createTextNode(".");
-	paragraph.appendChild(text2)
-
-	warningOutlet.appendChild(paragraph);
-
-	anchor.addEventListener("click", () => {
+	document.getElementById("permission-request").addEventListener("click", () => {
 		const permissionsToRequest = {
 			origins: ["<all_urls>"],
 		}
@@ -158,7 +136,6 @@ function renderHTML() {
 
 	for (let [key, value] of sortedFrameEntries) {
 		for (e of value) {
-			console.debug(e);
 			audioHTML.append(e.audioHTML);
 			videoHTML.append(e.videoHTML);
 		}
@@ -166,15 +143,12 @@ function renderHTML() {
 
 	let html = document.createDocumentFragment();
 	if (audioHTML.children.length) {
-		let h3 = document.createElement('h3');
-		h3.textContent = "Audio";
-		html.appendChild(h3);
+		
+		html.appendChild(h3("Audio"));
 		html.appendChild(audioHTML);
 	}
 	if (videoHTML.children.length) {
-		let h3 = document.createElement('h3');
-		h3.textContent = "Video";
-		html.appendChild(h3);
+		html.appendChild(h3("Video"));
 		html.appendChild(videoHTML);
 	}
 	if (!html) {
@@ -188,6 +162,26 @@ function renderHTML() {
 	sliders.forEach(slider => {
 		slider.addEventListener("input", sendAdjustedVolume);
 	});
+}
+
+/**
+ * Creates a h3 element.
+ * @param {string} text 
+ */
+function h3(text) {
+	let h3 = document.createElement('h3');
+	h3.textContent = text;
+	return h3;
+}
+
+/**
+ * Creates a p element.
+ * @param {string} text
+ */
+function paragraph(text) {
+	let p = document.createElement('p');
+	p.textContent = text;
+	return p;
 }
 
 /**

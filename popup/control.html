@@ -19,6 +19,17 @@
         </div>
     </template>
 
+    <template id="iframe-warning-template">
+      <p>
+        There seems to be an I-Frame on this page. If the media is inside a Frame/I-Frame this addon might not be able to access it, unless you give it 
+        <a id="permission-request" href=#>permission to all_urls</a>.
+      </p>
+    </template>
+
+    <template id="permission-warning-template">
+      <p>This is probably because you are on an internal site (e.g. about:blank) or on one of the <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts">here mentioned domains</a> (e.g. addons.mozilla.com).</p>
+    </template>
+
     <script src="control.js"></script>
   </body>
 </html>
