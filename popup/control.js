@@ -87,7 +87,7 @@ function handleMessage(m, port) {
  */
 function renderEmptyPage() {
 	let p = document.createElement("p");
-	p.textContent = "No Audio or Video Elements on this page.";
+	p.textContent = "No audio or video elements on this page.";
 	return document.createDocumentFragment().appendChild(p);
 }
 
@@ -151,7 +151,7 @@ function renderHTML() {
 		html.appendChild(h3("Video"));
 		html.appendChild(videoHTML);
 	}
-	if (!html) {
+	if (!html.children.length) {
 		html = renderEmptyPage();
 	}
 	
