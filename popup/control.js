@@ -1,6 +1,7 @@
 let controlOutlet = document.getElementById('control-outlet');
 let warningOutlet = document.getElementById('warning-outlet');
 let sliderTemplate = document.getElementById('slider-template');
+let masterTemplate = document.getElementById('master-template');
 let iframeWarningTemplate = document.getElementById('iframe-warning-template');
 let permissionWarningTemplate = document.getElementById('permission-warning-template');
 
@@ -143,25 +144,31 @@ function renderHTML() {
 
 	let html = document.createDocumentFragment();
 	if (audioHTML.children.length) {
-		
-		html.appendChild(h3("Audio"));
 		html.appendChild(audioHTML);
 	}
 	if (videoHTML.children.length) {
-		html.appendChild(h3("Video"));
 		html.appendChild(videoHTML);
 	}
 	if (!html.children.length) {
 		html = renderEmptyPage();
+	} else {
+		let newHtml = document.createDocumentFragment();
+		newHtml.appendChild(masterTemplate.content);
+		newHtml.append(html);
+		html = newHtml;
 	}
 	
 	controlOutlet.textContent = "";
 	controlOutlet.appendChild(html);
 
-	let sliders = document.querySelectorAll("input[type='range']");
-	sliders.forEach(slider => {
+	let sliders = document.getElementsByClassName("slider channel");
+	Array.from(sliders).forEach(slider => {
 		slider.addEventListener("input", sendAdjustedVolume);
 	});
+
+	let master = document.getElementById("master");
+	console.log(master);
+	master.addEventListener("input", changeMasterVolume);
 }
 
 /**
@@ -200,6 +207,20 @@ function sendAdjustedVolume() {
 }
 
 /**
+ * Changes the volume for all sliders based on the master volume.
+ */
+function changeMasterVolume() {
+	let volume = this.value;
+	let sliders = document.getElementsByClassName("slider channel");
+
+	console.debug(sliders);
+	Array.from(sliders).forEach(slider => {
+		slider.value = volume;
+		sendAdjustedVolume.bind(slider)();
+	});
+}
+
+/**
  * Generate a slider representing the media status inside a message.
  * @param {*} m Message from the contententscript about the current media status.
  * @param {number} frameId ID of the frame this slider was generated for. Will be used to send the volume commands to the appropriate frame.  
@@ -210,6 +231,13 @@ function generateSlider(m, frameId, documentId) {
 	const label = content.querySelector("label");
 	label.for = m.id;
 
+	const typeIndicator = content.querySelector(".media-type-indicator");
+	if (m.type === "audio") {
+		typeIndicator.textContent = "Audio at ";
+	} else if (m.type === "video") {
+		typeIndicator.textContent = "Video at ";
+	}
+	
 	const anchor = content.querySelector("a");
 	anchor.href = m.src;
 	anchor.textContent = decodeURIComponent(m.src);

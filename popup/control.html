@@ -7,16 +7,28 @@
   </head>
 
   <body>
-    <div id="control-outlet"><p>Loading... (if this takes too long it's likely broken.)</p></div>
     <div id="warning-outlet"></div>
+    <div id="control-outlet"><p>Loading... (if this takes too long it's likely broken.)</p></div>
     
     <template id="slider-template">
       <div class="slider-container">
         <label for="">
+            <span class="media-type-indicator"></span>
             <a href=""></a>
           </label>
-          <input id="" class="slider" type="range" min="0" max="100" value="100" data-type="" data-volumecontrol-id="" data-frame-id="" data-document-id="">
+          <input id="" class="slider channel" type="range" min="0" max="100" value="100" data-type="" data-volumecontrol-id="" data-frame-id="" data-document-id="">
         </div>
+        <hr/>
+    </template>
+
+    <template id="master-template">
+      <div class="master-container slider-container">
+        <label for="master">
+            Master
+          </label>
+          <input id="master" class="slider master" type="range" min="0" max="100" value="100">
+        </div>
+        <hr/>
     </template>
 
     <template id="iframe-warning-template">
