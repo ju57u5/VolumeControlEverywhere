@@ -20,14 +20,13 @@ function runContentScript() {
 	executionResult.catch(
 		(error) => {
 			console.error(error);
-			controlOutlet.textContent="";
-			errorOutlet.appendChild(renderError(error))
+			renderError(error);
 		}
 	);
 }
 
 /**
- * Render the error message as a document fragment.
+ * Render the error message inside errorOutlet.
  * @param {Error} error 
  */
 function renderError(error) {
@@ -37,7 +36,8 @@ function renderError(error) {
 	if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
 		fragment.appendChild(permissionWarningTemplate.content);
 	}
-	return fragment;
+	controlOutlet.textContent="";
+	errorOutlet.appendChild(fragment);
 }
 
 /**
