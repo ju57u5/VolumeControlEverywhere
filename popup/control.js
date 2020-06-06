@@ -1,5 +1,6 @@
 let controlOutlet = document.getElementById('control-outlet');
 let warningOutlet = document.getElementById('warning-outlet');
+let errorOutlet = document.getElementById('error-outlet');
 let sliderTemplate = document.getElementById('slider-template');
 let masterTemplate = document.getElementById('master-template');
 let iframeWarningTemplate = document.getElementById('iframe-warning-template');
@@ -20,7 +21,7 @@ function runContentScript() {
 		(error) => {
 			console.error(error);
 			controlOutlet.textContent="";
-			controlOutlet.appendChild(renderError(error))
+			errorOutlet.appendChild(renderError(error))
 		}
 	);
 }
@@ -150,7 +151,11 @@ function renderHTML() {
 		html.appendChild(videoHTML);
 	}
 	if (!html.children.length) {
+		//Render empty page and die.
 		html = renderEmptyPage();
+		controlOutlet.textContent = "";
+		errorOutlet.appendChild(html);
+		return;
 	} else {
 		let newHtml = document.createDocumentFragment();
 		newHtml.appendChild(masterTemplate.content);
@@ -167,7 +172,6 @@ function renderHTML() {
 	});
 
 	let master = document.getElementById("master");
-	console.log(master);
 	master.addEventListener("input", changeMasterVolume);
 }
 
@@ -213,7 +217,6 @@ function changeMasterVolume() {
 	let volume = this.value;
 	let sliders = document.getElementsByClassName("slider channel");
 
-	console.debug(sliders);
 	Array.from(sliders).forEach(slider => {
 		slider.value = volume;
 		sendAdjustedVolume.bind(slider)();

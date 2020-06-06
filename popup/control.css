@@ -14,7 +14,7 @@ body {
 }
 
 #control-outlet {
-  width: 98%;
+  width: 96%;
 }
 
 #control-outlet a {
@@ -35,6 +35,12 @@ hr {
 }
 
 .slider {
+  width: 100%;
+  height: 10px;
+  background: #d3d3d3;
+}
+
+/*.slider {
   -webkit-appearance: none;
   width: 100%;
   height: 10px;
@@ -44,6 +50,10 @@ hr {
   opacity: 0.7;
   -webkit-transition: .2s;
   transition: opacity .2s;
+}*/
+
+p.loading {
+  margin: 0.5em;
 }
 
 .slider.master {
@@ -60,13 +70,15 @@ hr {
   cursor: pointer;
 }
 
+
 .slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--primary);
+  /*background: var(--primary);*/
   cursor: pointer;
 }
+
 
 label {
   display: inline-block;
@@ -97,5 +109,9 @@ h3 {
 }
 
 #warning-outlet p {
-  padding: 7px;
+  margin: 0.8em;
+}
+
+#error-outlet p {
+  margin: 0.5em;
 }
