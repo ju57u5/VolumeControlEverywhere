@@ -11,12 +11,12 @@ async function render() {
     if (await hasAllUrlPermission()) {
         indicator.textContent = "granted";
         indicator.classList = "granted";
-        switcher.textContent = "Revoke permissions";
+        switcher.textContent = "Revoke permission";
         allUrlPermission = true;
     } else {
         indicator.textContent = "not granted";
         indicator.classList = "not-granted";
-        switcher.textContent = "Request permissions";
+        switcher.textContent = "Request permission";
         allUrlPermission = false;
     }
 }
