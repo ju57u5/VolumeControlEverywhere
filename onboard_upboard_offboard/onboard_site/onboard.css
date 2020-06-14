@@ -1,0 +1,33 @@
+.arrow {
+    position: absolute; 
+    right: 10%; 
+    top: 0;
+    transform: rotate(20deg);
+}
+
+
+.arrow span {
+    font-size: 7em;
+    display: inline-block;
+}
+
+.arrow img {
+    width: 4em; 
+    display:block; 
+    margin:auto;
+}
+
+img.flowtext-icon {
+    vertical-align: middle;
+    height: 2.3em;
+}
+
+p {
+    line-height: 200%;
+}
+
+main {
+    width: 60%;
+    margin: auto;
+    margin-top: 6rem;
+}
