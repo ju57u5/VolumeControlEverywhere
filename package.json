@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {},
   "devDependencies": {
-    "web-ext": "^4.2.0"
+    "web-ext": "^4.3.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
