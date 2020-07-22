@@ -1,12 +1,16 @@
 (function () {
 	//only execute once
-	if (globalThis.VCE_PORT !== undefined) {
+	if (globalThis.VCE_HAS_RUN !== undefined) {
+		console.debug("Content script was already injected.");
 		return;
 	}
+	globalThis.VCE_HAS_RUN = true;
+	
 	const dataSetKey = "addonVolumeControlEverywhere";
 	const dataString = "data-addon-volume-control-everywhere";
-	const VCE_PORT = browser.runtime.connect({ name: "port-from-cs" });
 	const contentDocuments = [globalThis.document];
+	let VCE_PORT = undefined;
+	browser.runtime.onConnect.addListener(onConnect);
 
 	/**
 	 * Sets up a listener to listen to volume adjustment messages and change the volume.
@@ -22,12 +26,18 @@
 				videoElement.volume = m.volume;
 			}
 			else if (m.type === "status") {
+				console.debug("status");
 				sendCurrentMediaStatus();
 				if (m.checkIFrame) {
 					sendCurrentIFrameStatus();
 				}
 			}
 		});
+	}
+
+	function onConnect(port) {
+		VCE_PORT = port;
+		setUpPortListener();
 	}
 
 	/**
@@ -113,7 +123,8 @@
 
 	/**
 	 * Marks DOM-Elemens with an id in the data attribute, to identify them later.
-	 * The key for the data-attribute is determined by the following scheme: data-addon-volume-control-everywhere-n, where n is an integer count of the elements starting at 1.
+	 * The key for the data-attribute is determined by the following scheme: 
+	 * data-addon-volume-control-everywhere-n, where n is an integer count of the elements starting at 1.
 	 *
 	 * @param {HTMLAudioElement|HTMLVideoElement} elements DOM-Elements to mark.
 	 */
@@ -123,6 +134,4 @@
 			e.dataset[dataSetKey] = id++;
 		}
 	}
-
-	setUpPortListener();
 })();

@@ -13,7 +13,7 @@ let framePortMap = new Map();
  * Run the content script in all available frames and show possible error messages in the popup.
  */
 function runContentScript() {
-	let executionResult = browser.tabs.executeScript(null, {
+	const executionResult = browser.tabs.executeScript(null, {
 		file: "/content_scripts/contentcontrol.js",
 		allFrames: true
 	});
@@ -23,6 +23,19 @@ function runContentScript() {
 			renderError(error);
 		}
 	);
+}
+
+async function connect() {
+	const activeTabs = await browser.tabs.query({
+		currentWindow: true, active: true
+	});
+	
+	//const frames = await browser.webNavigation.getAllFrames({tabId: activeTabs[0].id});
+
+	//for (let frame of frames) {frameId: frame.frameId
+		const port = browser.tabs.connect(activeTabs[0].id, { name: "vce-port",  });
+		connected(port);
+	//}
 }
 
 /**
@@ -36,7 +49,7 @@ function renderError(error) {
 	if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
 		fragment.appendChild(permissionWarningTemplate.content);
 	}
-	controlOutlet.textContent="";
+	controlOutlet.textContent = "";
 	errorOutlet.appendChild(fragment);
 }
 
@@ -45,8 +58,9 @@ function renderError(error) {
  * @param {*} port 
  */
 async function connected(port) {
-	let frameId = port.sender.frameId;
-	framePortMap.set(frameId, port);
+	console.debug(port);
+	//let frameId = port.sender.frameId;
+	//framePortMap.set(frameId, port);
 	port.onMessage.addListener(handleMessage);
 
 	//Request the media data from the contentscript.
@@ -60,6 +74,7 @@ async function connected(port) {
  */
 function handleMessage(m, port) {
 	console.debug("Message", m);
+	console.debug("Port", port);
 	if (m.type === "iframe-status" && m.iframe) {
 		renderIFrameWarning();
 		return;
@@ -68,7 +83,7 @@ function handleMessage(m, port) {
 
 	let audioHTML = document.createDocumentFragment();
 	let videoHTML = document.createDocumentFragment();
-	
+
 	let mapper = e => generateSlider(e, frameId, m.documentId);
 	m.audio.map(mapper).forEach(e => audioHTML.append(e));
 	m.video.map(mapper).forEach(e => videoHTML.append(e));
@@ -113,7 +128,7 @@ async function renderIFrameWarning() {
 		//Don't render if we already rendered.
 		return;
 	}
-	
+
 	warningOutlet.appendChild(iframeWarningTemplate.content);
 
 	document.getElementById("permission-request").addEventListener("click", () => {
@@ -162,7 +177,7 @@ function renderHTML() {
 		newHtml.append(html);
 		html = newHtml;
 	}
-	
+
 	controlOutlet.textContent = "";
 	controlOutlet.appendChild(html);
 
@@ -240,7 +255,7 @@ function generateSlider(m, frameId, documentId) {
 	} else if (m.type === "video") {
 		typeIndicator.textContent = "Video at ";
 	}
-	
+
 	const anchor = content.querySelector("a");
 	anchor.href = m.src;
 	anchor.textContent = decodeURIComponent(m.src);
@@ -249,13 +264,12 @@ function generateSlider(m, frameId, documentId) {
 	input.id = m.id;
 	input.value = m.volume * 100;
 	input.dataset.type = m.type;
-	input.dataset.volumecontrolId = m.id
+	input.dataset.volumecontrolId = m.id;
 	input.dataset.frameId = frameId;
-	input.dataset.documentId = documentId
+	input.dataset.documentId = documentId;
 
 	return document.importNode(content, true);
 }
 
 runContentScript();
-browser.runtime.onConnect.addListener(connected);
-
+connect();
