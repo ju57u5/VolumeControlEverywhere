@@ -1,0 +1,54 @@
+This addon support two types of permissions sets:
+
+(1) Only the activeTab permission is granted. 
+    This is the default.
+
+(2) ActiveTab and all_urls permission are granted. 
+    The additional permission are requested from the user at runtime.
+
+Permission set (2) is included in the extension because of Same Origin Policies. 
+When an audio or video element is inside an iframe, permission set (1) can only 
+access the iframe content (located at iframe.contentDocument), if the location 
+of the iframe is on the same origin as the main site, it is embedded in. 
+
+
++----------------+       +-------------------------------------------------+
+|                |       |                                                 |
+|   Popup <-------------------> <Content script>                           |
+|                |       |             +                                   |
+|                |       |             |                                   |
+|                |       |             |                                   |
++----------------+       |             | check + access                    |
+                         |             |                                   |
+                         |             |           +--------------------+  |
+                         |             |           |                    |  |
+                         |             +------------->contentDocument   |  |
+                         |                         |                    |  |
+                         |                         |                    |  |
+                         |                         +--------------------+  |
+                         |                                                 |
+                         +-------------------------------------------------+
+
+
+When the add-on detects that iframe.contentDocument can't be accessed, it notifies 
+the user and offers to convert the addon to permission set (2). 
+With permission set (2), the add-on can inject a content script into every frame 
+inside the tab regardless of origin. It is no longer neccissary, to check the 
+content inside iframe.contentDocument, because there will be a content_script 
+injected inside it, that can handle the audio/video elements.
+
++---------------+       +--------------------------------------------------+
+|               |       |                                                  |
+|   Popup <------------------> <Content script>                            |
+|               |       |                                                  |
+|         <-------------------------------------------------+              |
+|               |       |                                   |              |
++---------------+       |                                   |              |
+                        |                                   |              |
+                        |                          +--------------------+  |
+                        |                          |        v           |  |
+                        |                          |  <Content script>  |  |
+                        |                          |                    |  |
+                        |                          +--------------------+  |
+                        |                                                  |
+                        +--------------------------------------------------+
