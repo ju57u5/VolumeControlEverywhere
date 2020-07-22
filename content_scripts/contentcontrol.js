@@ -1,12 +1,9 @@
 (function () {
-	//only execute once
-	if (globalThis.VCE_PORT !== undefined) {
-		return;
-	}
 	const dataSetKey = "addonVolumeControlEverywhere";
 	const dataString = "data-addon-volume-control-everywhere";
-	const VCE_PORT = browser.runtime.connect({ name: "port-from-cs" });
+	const VCE_PORT = browser.runtime.connect({ name: "vce-from-cs" });
 	const contentDocuments = [globalThis.document];
+	setUpPortListener();
 
 	/**
 	 * Sets up a listener to listen to volume adjustment messages and change the volume.
@@ -51,7 +48,7 @@
 	 */
 	function sendCurrentIFrameStatus(document = globalThis.document) {
 		let iframe = document.querySelectorAll("iframe");
-		if(!iframe) {
+		if (!iframe) {
 			return;
 		}
 
@@ -123,6 +120,4 @@
 			e.dataset[dataSetKey] = id++;
 		}
 	}
-
-	setUpPortListener();
 })();
