@@ -1,8 +1,8 @@
 (function () {
-	const dataSetKey = "addonVolumeControlEverywhere";
-	const dataString = "data-addon-volume-control-everywhere";
 	const VCE_PORT = browser.runtime.connect({ name: "vce-from-cs" });
 	const contentDocuments = [globalThis.document];
+	const audioElements = [];
+	const videoElements = [];
 	setUpPortListener();
 
 	/**
@@ -11,18 +11,20 @@
 	function setUpPortListener() {
 		VCE_PORT.onMessage.addListener((m) => {
 			if (m.type === "audio") {
-				let audioElement = contentDocuments[m.documentId].querySelector(`audio[${dataString}='${m.id}']`);
-				audioElement.volume = m.volume;
+				let element = audioElements[m.documentId][m.id];
+				element.volume = m.volume;
 			}
 			else if (m.type === "video") {
-				let videoElement = contentDocuments[m.documentId].querySelector(`video[${dataString}='${m.id}']`);
-				videoElement.volume = m.volume;
+				let element = videoElements[m.documentId][m.id];
+				console.log("video", element);
+				element.volume = m.volume;
 			}
 			else if (m.type === "status") {
 				sendCurrentMediaStatus();
 				if (m.checkIFrame) {
 					sendCurrentIFrameStatus();
 				}
+				VCE_PORT.postMessage({ type: "render" });
 			}
 		});
 	}
@@ -74,12 +76,12 @@
 	 * @param {HTMLAudioElement|HTMLVideoElement} element audio or video-element marked with {@link markElements}.
 	 * @see {@link markElements}
 	 */
-	function getPortMessage(element) {
+	function getPortMessage(element, index) {
 		return {
 			src: element.currentSrc,
 			volume: element.volume,
-			id: element.dataset[dataSetKey],
-			type: element.nodeName.toLowerCase()
+			id: index,
+			type: element.nodeName.toLowerCase(),
 		};
 	}
 
@@ -88,36 +90,15 @@
 	 * @param {HTMLDocument} document Set if you want to not use globalThis.document.
 	 */
 	function sendCurrentMediaStatus(document = globalThis.document, documentId = 0) {
-		let audioElements = document.getElementsByTagName("audio");
-		let videoElements = document.getElementsByTagName("video");
-
-		markElements(audioElements);
-		markElements(videoElements);
+		audioElements[documentId] = document.getElementsByTagName("audio");
+		videoElements[documentId] = document.getElementsByTagName("video");
 
 		let message = {
-			audio: Array.prototype.map.call(
-				audioElements, e => getPortMessage(e)
-			),
-			video: Array.prototype.map.call(
-				videoElements, e => getPortMessage(e)
-			),
+			audio: Array.prototype.map.call(audioElements[documentId], getPortMessage),
+			video: Array.prototype.map.call(videoElements[documentId], getPortMessage),
 			documentId: documentId,
 		}
 
-
 		VCE_PORT.postMessage(message);
-	}
-
-	/**
-	 * Marks DOM-Elemens with an id in the data attribute, to identify them later.
-	 * The key for the data-attribute is determined by the following scheme: data-addon-volume-control-everywhere-n, where n is an integer count of the elements starting at 1.
-	 *
-	 * @param {HTMLAudioElement|HTMLVideoElement} elements DOM-Elements to mark.
-	 */
-	function markElements(elements) {
-		let id = 1;
-		for (let e of elements) {
-			e.dataset[dataSetKey] = id++;
-		}
 	}
 })();

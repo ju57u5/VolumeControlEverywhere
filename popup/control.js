@@ -9,6 +9,9 @@ let permissionWarningTemplate = document.getElementById('permission-warning-temp
 let frameDataMap = new Map();
 let framePortMap = new Map();
 
+runContentScript();
+browser.runtime.onConnect.addListener(connected);
+
 /**
  * Run the content script in all available frames and show possible error messages in the popup.
  */
@@ -63,6 +66,9 @@ function handleMessage(m, port) {
 	if (m.type === "iframe-status" && m.iframe) {
 		renderIFrameWarning();
 		return;
+	} else if (m.type === "render") {
+		renderHTML();
+		return;
 	}
 	let frameId = port.sender.frameId;
 
@@ -76,12 +82,10 @@ function handleMessage(m, port) {
 	let frameData = { audioHTML: audioHTML, videoHTML: videoHTML };
 	let frameDataArray = frameDataMap.get(frameId);
 	if (frameDataArray === undefined) {
-		frameDataArray = [],
-			frameDataMap.set(frameId, frameDataArray);
+		frameDataArray = [];
+		frameDataMap.set(frameId, frameDataArray);
 	}
 	frameDataArray[m.documentId] = frameData;
-
-	renderHTML();
 }
 
 /**
@@ -135,7 +139,7 @@ function renderHTML() {
 	let audioHTML = document.createDocumentFragment();
 	let videoHTML = document.createDocumentFragment();
 	let sortedFrameEntries = [...frameDataMap.entries()].sort();
-
+	
 	for (let [key, value] of sortedFrameEntries) {
 		for (e of value) {
 			audioHTML.append(e.audioHTML);
@@ -145,10 +149,10 @@ function renderHTML() {
 
 	let html = document.createDocumentFragment();
 	if (audioHTML.children.length) {
-		html.appendChild(audioHTML);
+		html.append(audioHTML);
 	}
 	if (videoHTML.children.length) {
-		html.appendChild(videoHTML);
+		html.append(videoHTML);
 	}
 	if (!html.children.length) {
 		//Render empty page and die.
@@ -158,7 +162,7 @@ function renderHTML() {
 		return;
 	} else {
 		let newHtml = document.createDocumentFragment();
-		newHtml.appendChild(masterTemplate.content);
+		newHtml.append(masterTemplate.content);
 		newHtml.append(html);
 		html = newHtml;
 	}
@@ -257,7 +261,3 @@ function generateSlider(m, frameId, documentId) {
 
 	return document.importNode(content, true);
 }
-
-runContentScript();
-browser.runtime.onConnect.addListener(connected);
-
