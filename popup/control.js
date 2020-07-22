@@ -36,7 +36,7 @@ function renderError(error) {
 	if (error.message === "Missing host permission for the tab" || error.message === "Missing host permission for the tab, and any iframes") {
 		fragment.appendChild(permissionWarningTemplate.content);
 	}
-	controlOutlet.textContent="";
+	controlOutlet.textContent = "";
 	errorOutlet.appendChild(fragment);
 }
 
@@ -68,7 +68,7 @@ function handleMessage(m, port) {
 
 	let audioHTML = document.createDocumentFragment();
 	let videoHTML = document.createDocumentFragment();
-	
+
 	let mapper = e => generateSlider(e, frameId, m.documentId);
 	m.audio.map(mapper).forEach(e => audioHTML.append(e));
 	m.video.map(mapper).forEach(e => videoHTML.append(e));
@@ -113,7 +113,7 @@ async function renderIFrameWarning() {
 		//Don't render if we already rendered.
 		return;
 	}
-	
+
 	warningOutlet.appendChild(iframeWarningTemplate.content);
 
 	document.getElementById("permission-request").addEventListener("click", () => {
@@ -162,7 +162,7 @@ function renderHTML() {
 		newHtml.append(html);
 		html = newHtml;
 	}
-	
+
 	controlOutlet.textContent = "";
 	controlOutlet.appendChild(html);
 
@@ -172,7 +172,9 @@ function renderHTML() {
 	});
 
 	let master = document.getElementById("master");
+	max = Math.max(...Array.prototype.map.call(sliders, s => s.value));
 	master.addEventListener("input", changeMasterVolume);
+	master.value = max;
 }
 
 /**
@@ -240,7 +242,7 @@ function generateSlider(m, frameId, documentId) {
 	} else if (m.type === "video") {
 		typeIndicator.textContent = "Video at ";
 	}
-	
+
 	const anchor = content.querySelector("a");
 	anchor.href = m.src;
 	anchor.textContent = decodeURIComponent(m.src);
