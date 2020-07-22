@@ -2,6 +2,8 @@
 
 Modern websites seem to hate to give you control over audio and video volume, so this is apparently needed.
 
+![Screenshot of the addon](screenshot.png)
+
 This addon will detect HTML5 audio/video components in the current tab and provide a quick way to change the volume.
 
 Note that not every sound coming out of your browser is a HTML5 audio or video element, so this addon might not solve all your problems.
