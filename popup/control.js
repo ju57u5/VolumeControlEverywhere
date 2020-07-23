@@ -167,6 +167,7 @@ function renderHTML() {
 		html = newHtml;
 	}
 
+	errorOutlet.textContent = "";
 	controlOutlet.textContent = "";
 	controlOutlet.appendChild(html);
 
