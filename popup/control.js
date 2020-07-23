@@ -139,11 +139,11 @@ function renderHTML() {
 	let audioHTML = document.createDocumentFragment();
 	let videoHTML = document.createDocumentFragment();
 	let sortedFrameEntries = [...frameDataMap.entries()].sort();
-	
+
 	for (let [key, value] of sortedFrameEntries) {
 		for (e of value) {
-			audioHTML.append(e.audioHTML);
-			videoHTML.append(e.videoHTML);
+			audioHTML.append(e.audioHTML.cloneNode(true));
+			videoHTML.append(e.videoHTML.cloneNode(true));
 		}
 	}
 
@@ -176,7 +176,7 @@ function renderHTML() {
 	});
 
 	let master = document.getElementById("master");
-	max = Math.max(...Array.prototype.map.call(sliders, s => s.value));
+	let max = Math.max(...Array.prototype.map.call(sliders, s => s.value));
 	master.addEventListener("input", changeMasterVolume);
 	master.value = max;
 }
